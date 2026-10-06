@@ -1,0 +1,8 @@
+# Configuración del paquete para Flet
+app:
+  name: "App Dante Alighieri"
+  description: "Colegio Dante Alighieri"
+
+# Asegurar que se incluyan todos los archivos Python y dependencias
+assets:
+  - database.py
