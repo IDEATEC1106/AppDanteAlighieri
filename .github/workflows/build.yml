@@ -36,8 +36,7 @@ jobs:
         pip install --upgrade flet-cli
 
     - name: Build Flet APK
-      run: |
-        flet build apk --project-name "App Dante Alighieri" --yes
+      run: flet build apk --yes
 
     - name: Upload APK artifact
       uses: actions/upload-artifact@v4
