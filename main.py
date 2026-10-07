@@ -57,6 +57,20 @@ def main(page: ft.Page):
                     "seccion": "-",
                     "turno": "-"
                 }
+                
+                # --- NUEVA LÍNEA: REGISTRAR TOKEN FCM ---
+                # Aquí es donde el celular obtiene su token único y lo manda a la base de datos a través de la API
+                try:
+                    # NOTA: En Flet puro, para obtener el token nativo de Firebase se usa el plugin de notificaciones.
+                    # Por ahora puedes simularlo o integrar la función que captura el token del dispositivo:
+                    token_dispositivo = "TOKEN_FCM_DEL_DISPOSITIVO_MOVIL" 
+                    
+                    if id_alumno and token_dispositivo:
+                        database.registrar_token_fcm(id_alumno, token_dispositivo)
+                except Exception as ex:
+                    print(f"No se pudo registrar el token push: {ex}")
+                # ----------------------------------------
+
                 user_input.value = ""
                 password_input.value = ""
                 crear_pantalla_home()
@@ -64,7 +78,6 @@ def main(page: ft.Page):
                 mostrar_alerta("Error de Acceso", "La contraseña (Documento del Apoderado) es incorrecta.")
         else:
             mostrar_alerta("Error de Acceso", "El código de alumno ingresado no existe.")
-
     # --- PANTALLA HOME ---
     def crear_pantalla_home():
         page.clean()
