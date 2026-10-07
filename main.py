@@ -61,14 +61,18 @@ def main(page: ft.Page):
                 # --- NUEVA LÍNEA: REGISTRAR TOKEN FCM ---
                 # Aquí es donde el celular obtiene su token único y lo manda a la base de datos a través de la API
                 try:
-                    # NOTA: En Flet puro, para obtener el token nativo de Firebase se usa el plugin de notificaciones.
-                    # Por ahora puedes simularlo o integrar la función que captura el token del dispositivo:
-                    token_dispositivo = "TOKEN_FCM_DEL_DISPOSITIVO_MOVIL" 
+                    # Solicitar permisos y obtener el token real de Firebase Cloud Messaging en el dispositivo
+                    token_dispositivo = page.get_fcm_token() # Método nativo que provee Flet para FCM
                     
+                    if not token_dispositivo:
+                        # Fallback por si la plataforma tarda en asignarlo en el primer arranque
+                        token_dispositivo = "TOKEN_PENDIENTE_DE_REGISTRO"
+
                     if id_alumno and token_dispositivo:
                         database.registrar_token_fcm(id_alumno, token_dispositivo)
+                        print(f"Token FCM registrado con éxito para el alumno {id_alumno}")
                 except Exception as ex:
-                    print(f"No se pudo registrar el token push: {ex}")
+                    print(f"No se pudo registrar el token push nativo: {ex}")
                 # ----------------------------------------
 
                 user_input.value = ""
