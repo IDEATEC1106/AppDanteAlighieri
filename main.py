@@ -60,29 +60,27 @@ def main(page: ft.Page):
 
                 # --- CAPTURAR TOKEN FCM DE FIREBASE ---
                 try:
-                    token_dispositivo = None
-                    
-                    if page.client_storage.contains_key("fcm_token"):
-                        token_dispositivo = page.client_storage.get("fcm_token")
+                    # 1. Escuchar token enviado dinámicamente desde la app cliente
+                    def recibir_token_fcm(e):
+                        token = e.data if hasattr(e, 'data') else e
+                        if token and id_alumno:
+                            database.registrar_token_fcm(id_alumno, str(token))
+                            page.client_storage.set("fcm_token", str(token))
+                            print(f"Token FCM guardado desde PubSub para alumno {id_alumno}: {token}")
 
-                    if id_alumno and token_dispositivo and token_dispositivo not in ["FCM_PENDIENTE_NATIVO", "TOKEN_FCM_DEL_DISPOSITIVO_MOVIL"]:
-                        database.registrar_token_fcm(id_alumno, token_dispositivo)
-                        print(f"Token FCM registrado para alumno {id_alumno}: {token_dispositivo}")
+                    # Suscribir a la sesión
+                    page.pubsub.subscribe_topic(f"fcm_token_{id_alumno}", recibir_token_fcm)
+
+                    # 2. Verificar si ya existe en almacenamiento local
+                    token_dispositivo = page.client_storage.get("fcm_token") if page.client_storage.contains_key("fcm_token") else None
+
+                    if id_alumno and token_dispositivo and token_dispositivo not in ["FCM_PENDIENTE_NATIVO", "TOKEN_FCM_DEL_DISPOSITIVO_MOVIL", ""]:
+                        database.registrar_token_fcm(id_alumno, str(token_dispositivo))
+                        print(f"Token FCM guardado en BD para alumno {id_alumno}: {token_dispositivo}")
                     else:
                         print("Aviso: Esperando emisión del token FCM...")
-                        
-                        def verificar_token_posterior(e=None):
-                            try:
-                                nuevo_token = page.client_storage.get("fcm_token")
-                                if nuevo_token and nuevo_token not in ["FCM_PENDIENTE_NATIVO", ""]:
-                                    database.registrar_token_fcm(id_alumno, nuevo_token)
-                                    print(f"Token FCM registrado en segundo plano: {nuevo_token}")
-                            except Exception:
-                                pass
-
-                        page.run_task(verificar_token_posterior)
                 except Exception as ex:
-                    print(f"Error en la captura de token: {ex}")
+                    print(f"Error al intentar registrar el token FCM: {ex}")
                 # -------------------------------------
 
                 user_input.value = ""
