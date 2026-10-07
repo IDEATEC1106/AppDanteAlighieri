@@ -58,21 +58,27 @@ def main(page: ft.Page):
                     "turno": "-"
                 }
                 
-                # --- OBTENER Y REGISTRAR TOKEN FCM REAL DE ANDROID ---
+               # --- CAPTURAR TOKEN REAL DE FIREBASE (FCM) ---
                 try:
-                    # Intentar rescatar el token de Firebase nativo de la sesión si fue inicializado por el wrapper de Android
+                    # En Flet para Android, el token se obtiene a través de los eventos de la página 
+                    # o propiedades nativas inyectadas por el contenedor de notificaciones.
                     token_dispositivo = getattr(page, "fcm_token", None)
                     
+                    # Si el token no está disponible inmediatamente en el evento de inicio, 
+                    # dejamos una variable de escucha o validamos que la sesión capture el canal nativo.
                     if not token_dispositivo:
-                        # Si aún no está listo en el primer milisegundo del login, asignamos una estructura temporal
-                        # pero permitimos que el login continúe con normalidad
-                        token_dispositivo = "FCM_PENDIENTE_NATIVO"
+                        # Intentamos recuperar el token desde el cliente si soporta el canal nativo
+                        token_dispositivo = page.client_storage.get("fcm_token")
 
-                    if id_alumno and token_dispositivo:
+                    if id_alumno and token_dispositivo and token_dispositivo not in ["FCM_PENDIENTE_NATIVO", "TOKEN_FCM_DEL_DISPOSITIVO_MOVIL"]:
                         database.registrar_token_fcm(id_alumno, token_dispositivo)
+                        print(f"Token FCM real registrado exitosamente para el alumno {id_alumno}")
+                    else:
+                        # Registro de respaldo temporal si la API nativa de Google requiere un ciclo de espera
+                        database.registrar_token_fcm(id_alumno, "FCM_PENDIENTE_NATIVO")
                 except Exception as ex:
-                    print(f"Error al registrar token push real: {ex}")
-                # -----------------------------------------------------
+                    print(f"Error al intentar registrar el token push real: {ex}")
+                # ---------------------------------------------
 
                 user_input.value = ""
                 password_input.value = ""
