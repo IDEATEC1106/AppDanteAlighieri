@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "356624780172",
+    "project_id": "notificacionfbg",
+    "storage_bucket": "notificacionfbg.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:356624780172:android:51848e238c64cc5f8da4a9",
+        "android_client_info": {
+          "package_name": "com.ideatec.dantealighieri"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCnZOnM36vw0hhhZGi1sAapp9nP8Q30Gxo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
