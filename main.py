@@ -60,24 +60,19 @@ def main(page: ft.Page):
                 
                # --- CAPTURAR TOKEN REAL DE FIREBASE (FCM) ---
                 try:
-                    # En Flet para Android, el token se obtiene a través de los eventos de la página 
-                    # o propiedades nativas inyectadas por el contenedor de notificaciones.
-                    token_dispositivo = getattr(page, "fcm_token", None)
-                    
-                    # Si el token no está disponible inmediatamente en el evento de inicio, 
-                    # dejamos una variable de escucha o validamos que la sesión capture el canal nativo.
-                    if not token_dispositivo:
-                        # Intentamos recuperar el token desde el cliente si soporta el canal nativo
-                        token_dispositivo = page.client_storage.get("fcm_token")
+                    # En Flet con soporte nativo de notificaciones, consultamos el canal del cliente
+                    token_dispositivo = getattr(page, "fcm_token", None) or page.client_storage.get("fcm_token")
 
-                    if id_alumno and token_dispositivo and token_dispositivo not in ["FCM_PENDIENTE_NATIVO", "TOKEN_FCM_DEL_DISPOSITIVO_MOVIL"]:
+                    if not token_dispositivo:
+                        # Si todavía está cargando el servicio de Google en segundo plano, 
+                        # dejamos una marca para que el cliente lo actualice en el siguiente ciclo o evento
+                        token_dispositivo = "FCM_PENDIENTE_NATIVO"
+
+                    if id_alumno and token_dispositivo:
                         database.registrar_token_fcm(id_alumno, token_dispositivo)
-                        print(f"Token FCM real registrado exitosamente para el alumno {id_alumno}")
-                    else:
-                        # Registro de respaldo temporal si la API nativa de Google requiere un ciclo de espera
-                        database.registrar_token_fcm(id_alumno, "FCM_PENDIENTE_NATIVO")
+                        print(f"Token procesado para alumno {id_alumno}: {token_dispositivo}")
                 except Exception as ex:
-                    print(f"Error al intentar registrar el token push real: {ex}")
+                    print(f"Error al registrar el token push: {ex}")
                 # ---------------------------------------------
 
                 user_input.value = ""
