@@ -57,3 +57,11 @@ def actualizar_estado_comunicado(id_comunica):
     except Exception as ex:
         print(f"Error: {ex}")
         return False
+
+def registrar_token_fcm(id_alumno, fcm_token):
+    try:
+        response = requests.post(f"{API_URL}/registrar_token", json={"id_alumno": id_alumno, "fcm_token": fcm_token}, timeout=10)
+        return response.status_code == 200
+    except Exception as ex:
+        print(f"Error registrando token: {ex}")
+        return False
