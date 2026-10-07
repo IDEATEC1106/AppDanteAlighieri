@@ -2,7 +2,16 @@
 app:
   name: "App Dante Alighieri"
   description: "Colegio Dante Alighieri"
+  
+  # Configuración y permisos nativos para Android (Necesario para notificaciones push)
+  android:
+    package_name: "com.ideatec.dantealighieri"
+    permissions:
+      - INTERNET
+      - RECEIVE_BOOT_COMPLETED
+      - VIBRATE
+      - WAKE_LOCK
+      - POST_NOTIFICATIONS
 
-# Asegurar que se incluyan todos los archivos Python y dependencias
-assets:
-  - database.py
+  assets:
+    - database.py
