@@ -58,22 +58,42 @@ def main(page: ft.Page):
                     "turno": "-"
                 }
                 
-               # --- CAPTURAR TOKEN REAL DE FIREBASE (FCM) ---
+               # --- CAPTURAR TOKEN REAL AUTOMÁTICO DE FIREBASE ---
                 try:
-                    # En Flet con soporte nativo de notificaciones, consultamos el canal del cliente
-                    token_dispositivo = getattr(page, "fcm_token", None) or page.client_storage.get("fcm_token")
-
+                    token_dispositivo = None
+                    
+                    # 1. Intentar capturar desde el almacenamiento local persistente de la app (si el servicio nativo ya lo guardó)
+                    if page.client_storage.contains_key("fcm_token"):
+                        token_dispositivo = page.client_storage.get("fcm_token")
+                    
+                    # 2. Si no está almacenado, intentamos leer la propiedad inyectada por el contenedor nativo
                     if not token_dispositivo:
-                        # Si todavía está cargando el servicio de Google en segundo plano, 
-                        # dejamos una marca para que el cliente lo actualice en el siguiente ciclo o evento
-                        token_dispositivo = "FCM_PENDIENTE_NATIVO"
+                        token_dispositivo = getattr(page, "fcm_token", None)
 
-                    if id_alumno and token_dispositivo:
+                    # Si el token es válido y real (no texto de prueba ni vacío)
+                    if id_alumno and token_dispositivo and token_dispositivo not in ["FCM_PENDIENTE_NATIVO", "TOKEN_FCM_DEL_DISPOSITIVO_MOVIL"]:
                         database.registrar_token_fcm(id_alumno, token_dispositivo)
-                        print(f"Token procesado para alumno {id_alumno}: {token_dispositivo}")
+                        print(f"Token FCM real capturado automáticamente para el alumno {id_alumno}: {token_dispositivo}")
+                    else:
+                        # Si el servicio nativo de Google Play Services aún está inicializándose en segundo plano,
+                        # dejamos un disparador para que la app consulte el token en el primer evento de la UI
+                        print("Aviso: Esperando a que Google Play Services emita el token FCM nativo...")
+                        
+                        # Definimos una función interna para reintentar obtener el token de forma automática
+                        def verificar_token_posterior(e=None):
+                            try:
+                                nuevo_token = page.client_storage.get("fcm_token")
+                                if nuevo_token and nuevo_token not in ["FCM_PENDIENTE_NATIVO", ""]:
+                                    database.registrar_token_fcm(id_alumno, nuevo_token)
+                                    print(f"Token FCM registrado en segundo plano con éxito: {nuevo_token}")
+                            except Exception:
+                                pass
+
+                        # Ejecutar verificación diferida
+                        page.run_task(verificar_token_posterior)
                 except Exception as ex:
-                    print(f"Error al registrar el token push: {ex}")
-                # ---------------------------------------------
+                    print(f"Error en la captura automática del token nativo: {ex}")
+                # ---------------------------------------------------
 
                 user_input.value = ""
                 password_input.value = ""
