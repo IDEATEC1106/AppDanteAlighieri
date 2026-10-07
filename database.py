@@ -60,11 +60,12 @@ def actualizar_estado_comunicado(id_comunica):
 
 def registrar_token_fcm(id_alumno, token_fcm):
     try:
-        # Asegurarse de usar la conexión activa
-        cursor = conexion.cursor()
-        sql = "UPDATE ALUMNO SET APO_FCM_TOKEN = %s WHERE Id_Alumno = %s"
-        cursor.execute(sql, (token_fcm, id_alumno))
-        conexion.commit() # ¡IMPORTANTE! Si no haces commit, los cambios no se guardan en la BD
-        print(f"OK: Token guardado en APO_FCM_TOKEN para el Id_Alumno: {id_alumno}")
-    except Exception as e:
-        print(f"Error SQL al actualizar APO_FCM_TOKEN: {e}")
+        response = requests.post(
+            f"{API_URL}/registrar_token_fcm", 
+            json={"id_alumno": id_alumno, "token_fcm": token_fcm}, 
+            timeout=10
+        )
+        return response.status_code == 200
+    except Exception as ex:
+        print(f"Error al registrar token FCM vía API: {ex}")
+        return False
