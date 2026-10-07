@@ -1,12 +1,3 @@
-Para gestionar la solicitud de permisos en Flet (por ejemplo, para notificaciones en Android 13+ o permisos generales), se utiliza el objeto PermissionHandler o la API de permisos nativos de Flet (page.permission_handler / ft.PermissionHandler).
-
-A continuación tienes el código main.py completo e integrado, donde:
-
-Se inicializa la verificación y solicitud explícita del permiso NOTIFICATIONS.
-
-Se ejecuta al iniciar el login o tras autenticarse correctamente para asegurar que el sistema otorgue el permiso antes de intentar registrar el token de FCM.
-
-Python
 from datetime import datetime
 import flet as ft
 import database
@@ -20,18 +11,6 @@ def main(page: ft.Page):
     page.window_height = 750
 
     page.datos_alumno = None
-
-    # --- MANEJO DE PERMISOS NATIVOS ---
-    permission_handler = ft.PermissionHandler()
-    page.overlay.append(permission_handler)
-
-    def solicitar_permisos_notificacion():
-        try:
-            # Comprobar si tenemos el permiso de notificaciones
-            if not permission_handler.has_permission(ft.PermissionType.NOTIFICATION):
-                permission_handler.request_permission(ft.PermissionType.NOTIFICATION)
-        except Exception as ex:
-            print(f"Aviso al solicitar permisos: {ex}")
 
     def mostrar_alerta(titulo, mensaje):
         def cerrar_dialogo(e):
@@ -78,41 +57,33 @@ def main(page: ft.Page):
                     "seccion": "-",
                     "turno": "-"
                 }
-                
-                # Pedir permiso de notificaciones si aún no se ha solicitado
-                solicitar_permisos_notificacion()
 
-                # --- CAPTURAR TOKEN REAL AUTOMÁTICO DE FIREBASE ---
+                # --- CAPTURAR TOKEN FCM DE FIREBASE ---
                 try:
                     token_dispositivo = None
                     
-                    # 1. Intentar capturar desde el almacenamiento local persistente
                     if page.client_storage.contains_key("fcm_token"):
                         token_dispositivo = page.client_storage.get("fcm_token")
-                    
-                    # 2. Si no está almacenado, intentamos leer la propiedad inyectada
-                    if not token_dispositivo:
-                        token_dispositivo = getattr(page, "fcm_token", None)
 
                     if id_alumno and token_dispositivo and token_dispositivo not in ["FCM_PENDIENTE_NATIVO", "TOKEN_FCM_DEL_DISPOSITIVO_MOVIL"]:
                         database.registrar_token_fcm(id_alumno, token_dispositivo)
-                        print(f"Token FCM real capturado automáticamente para el alumno {id_alumno}: {token_dispositivo}")
+                        print(f"Token FCM registrado para alumno {id_alumno}: {token_dispositivo}")
                     else:
-                        print("Aviso: Esperando a que Google Play Services emita el token FCM nativo...")
+                        print("Aviso: Esperando emisión del token FCM...")
                         
                         def verificar_token_posterior(e=None):
                             try:
                                 nuevo_token = page.client_storage.get("fcm_token")
                                 if nuevo_token and nuevo_token not in ["FCM_PENDIENTE_NATIVO", ""]:
                                     database.registrar_token_fcm(id_alumno, nuevo_token)
-                                    print(f"Token FCM registrado en segundo plano con éxito: {nuevo_token}")
+                                    print(f"Token FCM registrado en segundo plano: {nuevo_token}")
                             except Exception:
                                 pass
 
                         page.run_task(verificar_token_posterior)
                 except Exception as ex:
-                    print(f"Error en la captura automática del token nativo: {ex}")
-                # ---------------------------------------------------
+                    print(f"Error en la captura de token: {ex}")
+                # -------------------------------------
 
                 user_input.value = ""
                 password_input.value = ""
@@ -380,8 +351,6 @@ def main(page: ft.Page):
     # --- INICIALIZACIÓN LOGIN ---
     def crear_pantalla_login():
         page.clean()
-        # Solicitar al cargar la app
-        solicitar_permisos_notificacion()
         page.add(
             ft.Column([
                 ft.Image(src="escudodante.png", width=120, height=120, fit=ft.ImageFit.CONTAIN),
