@@ -2,16 +2,23 @@
 app:
   name: "App Dante Alighieri"
   description: "Colegio Dante Alighieri"
-  
-  android:
-    package_name: "com.ideatec.dantealighieri"
-    permissions:
-      - INTERNET
-      - RECEIVE_BOOT_COMPLETED
-      - VIBRATE
-      - WAKE_LOCK
-      - POST_NOTIFICATIONS
 
-  assets:
-    - database.py
-    - google-services.json
+android:
+  package_name: "com.ideatec.dantealighieri"
+  # Incluimos google-services.json específicamente dentro de la config de android
+  google_services: google-services.json
+  permissions:
+    - INTERNET
+    - RECEIVE_BOOT_COMPLETED
+    - VIBRATE
+    - WAKE_LOCK
+    - POST_NOTIFICATIONS
+
+# Agregamos las dependencias nativas de Flutter para FCM
+flutter:
+  dependencies:
+    firebase_core: ^3.0.0
+    firebase_messaging: ^15.0.0
+
+assets:
+  - escudodante.png
