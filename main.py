@@ -1,3 +1,12 @@
+Para gestionar la solicitud de permisos en Flet (por ejemplo, para notificaciones en Android 13+ o permisos generales), se utiliza el objeto PermissionHandler o la API de permisos nativos de Flet (page.permission_handler / ft.PermissionHandler).
+
+A continuación tienes el código main.py completo e integrado, donde:
+
+Se inicializa la verificación y solicitud explícita del permiso NOTIFICATIONS.
+
+Se ejecuta al iniciar el login o tras autenticarse correctamente para asegurar que el sistema otorgue el permiso antes de intentar registrar el token de FCM.
+
+Python
 from datetime import datetime
 import flet as ft
 import database
@@ -11,6 +20,18 @@ def main(page: ft.Page):
     page.window_height = 750
 
     page.datos_alumno = None
+
+    # --- MANEJO DE PERMISOS NATIVOS ---
+    permission_handler = ft.PermissionHandler()
+    page.overlay.append(permission_handler)
+
+    def solicitar_permisos_notificacion():
+        try:
+            # Comprobar si tenemos el permiso de notificaciones
+            if not permission_handler.has_permission(ft.PermissionType.NOTIFICATION):
+                permission_handler.request_permission(ft.PermissionType.NOTIFICATION)
+        except Exception as ex:
+            print(f"Aviso al solicitar permisos: {ex}")
 
     def mostrar_alerta(titulo, mensaje):
         def cerrar_dialogo(e):
@@ -58,28 +79,27 @@ def main(page: ft.Page):
                     "turno": "-"
                 }
                 
-               # --- CAPTURAR TOKEN REAL AUTOMÁTICO DE FIREBASE ---
+                # Pedir permiso de notificaciones si aún no se ha solicitado
+                solicitar_permisos_notificacion()
+
+                # --- CAPTURAR TOKEN REAL AUTOMÁTICO DE FIREBASE ---
                 try:
                     token_dispositivo = None
                     
-                    # 1. Intentar capturar desde el almacenamiento local persistente de la app (si el servicio nativo ya lo guardó)
+                    # 1. Intentar capturar desde el almacenamiento local persistente
                     if page.client_storage.contains_key("fcm_token"):
                         token_dispositivo = page.client_storage.get("fcm_token")
                     
-                    # 2. Si no está almacenado, intentamos leer la propiedad inyectada por el contenedor nativo
+                    # 2. Si no está almacenado, intentamos leer la propiedad inyectada
                     if not token_dispositivo:
                         token_dispositivo = getattr(page, "fcm_token", None)
 
-                    # Si el token es válido y real (no texto de prueba ni vacío)
                     if id_alumno and token_dispositivo and token_dispositivo not in ["FCM_PENDIENTE_NATIVO", "TOKEN_FCM_DEL_DISPOSITIVO_MOVIL"]:
                         database.registrar_token_fcm(id_alumno, token_dispositivo)
                         print(f"Token FCM real capturado automáticamente para el alumno {id_alumno}: {token_dispositivo}")
                     else:
-                        # Si el servicio nativo de Google Play Services aún está inicializándose en segundo plano,
-                        # dejamos un disparador para que la app consulte el token en el primer evento de la UI
                         print("Aviso: Esperando a que Google Play Services emita el token FCM nativo...")
                         
-                        # Definimos una función interna para reintentar obtener el token de forma automática
                         def verificar_token_posterior(e=None):
                             try:
                                 nuevo_token = page.client_storage.get("fcm_token")
@@ -89,7 +109,6 @@ def main(page: ft.Page):
                             except Exception:
                                 pass
 
-                        # Ejecutar verificación diferida
                         page.run_task(verificar_token_posterior)
                 except Exception as ex:
                     print(f"Error en la captura automática del token nativo: {ex}")
@@ -102,6 +121,7 @@ def main(page: ft.Page):
                 mostrar_alerta("Error de Acceso", "La contraseña (Documento del Apoderado) es incorrecta.")
         else:
             mostrar_alerta("Error de Acceso", "El código de alumno ingresado no existe.")
+
     # --- PANTALLA HOME ---
     def crear_pantalla_home():
         page.clean()
@@ -322,7 +342,6 @@ def main(page: ft.Page):
                 remitente = item.get("Remitente") or item.get("remitente") or "Remitente no especificado"
                 fecha_lectura = item.get("Leido") or item.get("leido") or "No registrada"
                 hora_lectura = item.get("Hora") or item.get("hora") or ""
-                texto_lectura = f"{fecha_lectura} {hora_lectura}".strip() or "No registrada"
                 
                 lista_leidos.controls.append(
                     ft.Container(
@@ -338,12 +357,12 @@ def main(page: ft.Page):
                 )
 
         tabs = ft.Tabs(
-                selected_index=0,
-                animation_duration=300,
-                tabs=[
-                    ft.Tab(text="No Leídos", content=lista_no_leidos),
-                    ft.Tab(text="Historial / Leídos", content=lista_leidos),
-                ], expand=1
+            selected_index=0,
+            animation_duration=300,
+            tabs=[
+                ft.Tab(text="No Leídos", content=lista_no_leidos),
+                ft.Tab(text="Historial / Leídos", content=lista_leidos),
+            ], expand=1
         )
 
         def volver(e):
@@ -361,6 +380,8 @@ def main(page: ft.Page):
     # --- INICIALIZACIÓN LOGIN ---
     def crear_pantalla_login():
         page.clean()
+        # Solicitar al cargar la app
+        solicitar_permisos_notificacion()
         page.add(
             ft.Column([
                 ft.Image(src="escudodante.png", width=120, height=120, fit=ft.ImageFit.CONTAIN),
